@@ -1,3 +1,6 @@
+install-tools:
+	go get github.com/golang/mock/mockgen
+
 generate-mocks:
 	go run main.go generate mocks
 
