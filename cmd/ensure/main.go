@@ -5,11 +5,11 @@ import (
 	"os"
 
 	"bursavich.dev/fs-shim/io/fs"
-	"github.com/JosiahWitt/cli-ensure/internal/cmd"
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/fswrite"
-	"github.com/JosiahWitt/cli-ensure/internal/mockgen"
-	"github.com/JosiahWitt/cli-ensure/internal/runcmd"
+	"github.com/JosiahWitt/ensure-cli/internal/cmd"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/fswrite"
+	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
+	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 )
 
 //nolint:gochecknoglobals // Allows injecting the version

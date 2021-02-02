@@ -5,9 +5,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/fswrite"
-	"github.com/JosiahWitt/cli-ensure/internal/runcmd"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/fswrite"
+	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 	"github.com/JosiahWitt/erk"
 )
 

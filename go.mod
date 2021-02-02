@@ -1,4 +1,4 @@
-module github.com/JosiahWitt/cli-ensure
+module github.com/JosiahWitt/ensure-cli
 
 go 1.15
 

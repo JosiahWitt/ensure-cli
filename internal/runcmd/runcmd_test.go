@@ -5,8 +5,8 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/JosiahWitt/cli-ensure/internal/runcmd"
 	"github.com/JosiahWitt/ensure"
+	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 	"github.com/JosiahWitt/ensure/ensurepkg"
 )
 

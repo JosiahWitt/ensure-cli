@@ -3,14 +3,14 @@ mocks:
     - path: bursavich.dev/fs-shim/io/fs
       interfaces: [ReadFileFS]
 
-    - path: github.com/JosiahWitt/cli-ensure/internal/runcmd
+    - path: github.com/JosiahWitt/ensure-cli/internal/runcmd
       interfaces: [RunnerIface]
 
-    - path: github.com/JosiahWitt/cli-ensure/internal/fswrite
+    - path: github.com/JosiahWitt/ensure-cli/internal/fswrite
       interfaces: [FSWriteIface]
 
-    - path: github.com/JosiahWitt/cli-ensure/internal/ensurefile
+    - path: github.com/JosiahWitt/ensure-cli/internal/ensurefile
       interfaces: [LoaderIface]
 
-    - path: github.com/JosiahWitt/cli-ensure/internal/mockgen
+    - path: github.com/JosiahWitt/ensure-cli/internal/mockgen
       interfaces: [GeneratorIface]

@@ -5,12 +5,12 @@ import (
 	"os"
 	"testing"
 
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/mockgen"
-	"github.com/JosiahWitt/cli-ensure/internal/mocks/mock_fswrite"
-	"github.com/JosiahWitt/cli-ensure/internal/mocks/mock_runcmd"
-	"github.com/JosiahWitt/cli-ensure/internal/runcmd"
 	"github.com/JosiahWitt/ensure"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_fswrite"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_runcmd"
+	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 	"github.com/JosiahWitt/ensure/ensurepkg"
 	"github.com/golang/mock/gomock"
 )

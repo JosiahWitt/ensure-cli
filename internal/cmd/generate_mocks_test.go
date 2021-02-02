@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/JosiahWitt/cli-ensure/internal/cmd"
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/mocks/mock_ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/mocks/mock_mockgen"
 	"github.com/JosiahWitt/ensure"
+	"github.com/JosiahWitt/ensure-cli/internal/cmd"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_mockgen"
 	"github.com/JosiahWitt/ensure/ensurepkg"
 )
 

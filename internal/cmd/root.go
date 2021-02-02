@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/mockgen"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
 	"github.com/urfave/cli/v2"
 )
 

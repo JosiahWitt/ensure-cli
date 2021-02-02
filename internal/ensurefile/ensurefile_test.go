@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"bursavich.dev/fs-shim/io/fs"
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
-	"github.com/JosiahWitt/cli-ensure/internal/mocks/bursavich.dev/fs-shim/io/mock_fs"
 	"github.com/JosiahWitt/ensure"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/bursavich.dev/fs-shim/io/mock_fs"
 	"github.com/JosiahWitt/ensure/ensurepkg"
 	"github.com/golang/mock/gomock"
 )

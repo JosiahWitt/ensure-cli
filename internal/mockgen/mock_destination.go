@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/JosiahWitt/cli-ensure/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
 	"github.com/JosiahWitt/erk"
 )
 
