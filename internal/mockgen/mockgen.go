@@ -2,13 +2,16 @@ package mockgen
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
 	"github.com/JosiahWitt/ensure-cli/internal/fswrite"
 	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 	"github.com/JosiahWitt/erk"
+	"github.com/JosiahWitt/erk/erg"
 )
 
 const (
@@ -17,9 +20,10 @@ const (
 )
 
 type (
-	ErkInvalidConfig struct{ erk.DefaultKind }
-	ErkMockGenError  struct{ erk.DefaultKind }
-	ErkFSWriteError  struct{ erk.DefaultKind }
+	ErkInvalidConfig    struct{ erk.DefaultKind }
+	ErkMultipleFailures struct{ erk.DefaultKind }
+	ErkMockGenError     struct{ erk.DefaultKind }
+	ErkFSWriteError     struct{ erk.DefaultKind }
 )
 
 var (
@@ -34,7 +38,8 @@ var (
 		"Package '{{.packagePath}}' has no interfaces to generate. Please add them using the `interfaces` key.",
 	)
 
-	ErrMockGenFailed = erk.New(ErkMockGenError{}, "Could not run mockgen successfully: {{.err}}")
+	ErrMultipleGenerationFailures = erk.New(ErkMultipleFailures{}, "Unable to generate at least one mock")
+	ErrMockGenFailed              = erk.New(ErkMockGenError{}, "Could not run mockgen successfully for '{{.packageDescription}}': {{.err}}")
 
 	ErrUnableToCreateDir  = erk.New(ErkFSWriteError{}, "Could not create directory '{{.path}}': {{.err}}")
 	ErrUnableToCreateFile = erk.New(ErkFSWriteError{}, "Could not create file '{{.path}}': {{.err}}")
@@ -47,6 +52,7 @@ type GeneratorIface interface {
 type Generator struct {
 	CmdRun  runcmd.RunnerIface
 	FSWrite fswrite.FSWriteIface
+	Logger  *log.Logger
 }
 
 var _ GeneratorIface = &Generator{}
@@ -82,20 +88,52 @@ func (g *Generator) GenerateMocks(config *ensurefile.Config) error {
 		packagePaths[pkg.Path] = true
 	}
 
-	fmt.Println("Generating mocks:") //nolint:forbidigo // Print header
+	asyncParams := &generateMockAsyncParams{
+		errors: erg.NewAs(ErrMultipleGenerationFailures),
+	}
+
+	g.Logger.Println("Generating mocks:")
 	for _, pkg := range packages {
-		if err := g.generateMock(config, pkg); err != nil {
-			return err // TODO: group errors
+		if !config.DisableParallelGeneration {
+			asyncParams.wg.Add(1)
+			go g.generateMockAsync(config, pkg, asyncParams)
+		} else {
+			g.Logger.Printf(" - Generating: %s\n", pkg.String())
+
+			if err := g.generateMock(config, pkg); err != nil {
+				asyncParams.errors = erg.Append(asyncParams.errors, err)
+			}
 		}
+	}
+
+	asyncParams.wg.Wait()
+	if erg.Any(asyncParams.errors) {
+		return asyncParams.errors
 	}
 
 	return nil
 }
 
-func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Package) error {
-	//nolint:forbidigo // Print the mock currently being generated
-	fmt.Printf(" - Generating: %s:%s\n", pkg.Path, strings.Join(pkg.Interfaces, ","))
+type generateMockAsyncParams struct {
+	wg       sync.WaitGroup
+	errors   error
+	errorsMu sync.Mutex
+}
 
+func (g *Generator) generateMockAsync(config *ensurefile.Config, pkg *ensurefile.Package, asyncParams *generateMockAsyncParams) {
+	defer asyncParams.wg.Done()
+
+	if err := g.generateMock(config, pkg); err != nil {
+		asyncParams.errorsMu.Lock()
+		defer asyncParams.errorsMu.Unlock()
+		asyncParams.errors = erg.Append(asyncParams.errors, err)
+		return
+	}
+
+	g.Logger.Printf(" - Generated: %s\n", pkg.String())
+}
+
+func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Package) error {
 	if pkg.Path == "" {
 		return ErrMissingPackagePath
 	}
@@ -120,7 +158,9 @@ func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Pack
 		},
 	})
 	if err != nil {
-		return erk.WrapAs(ErrMockGenFailed, err)
+		return erk.WrapWith(ErrMockGenFailed, err, erk.Params{
+			"packageDescription": pkg.String(),
+		})
 	}
 
 	result += createNEWMethods(pkg.Interfaces)

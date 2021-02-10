@@ -181,3 +181,13 @@ func TestLoadConfig(t *testing.T) {
 		ensure(config).Equals(entry.ExpectedConfig)
 	})
 }
+
+func TestPackageString(t *testing.T) {
+	ensure := ensure.New(t)
+
+	pkg := ensurefile.Package{
+		Path:       "github.com/my/pkg",
+		Interfaces: []string{"Iface1", "Iface2"},
+	}
+	ensure(pkg.String()).Equals("github.com/my/pkg:Iface1,Iface2")
+}

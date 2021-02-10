@@ -22,6 +22,8 @@ func (a *App) Run(args []string) error {
 		Usage:   "A balanced test framework for Go 1.14+.",
 		Version: a.Version,
 
+		ExitErrHandler: func(context *cli.Context, err error) {}, // Bubble up error
+
 		Commands: []*cli.Command{
 			a.generateCmd(),
 		},

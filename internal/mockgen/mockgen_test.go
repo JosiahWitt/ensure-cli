@@ -2,6 +2,8 @@ package mockgen_test
 
 import (
 	"errors"
+	"io/ioutil"
+	"log"
 	"os"
 	"testing"
 
@@ -33,9 +35,9 @@ func TestGenerateMocks(t *testing.T) {
 		Config        *ensurefile.Config
 		ExpectedError error
 
-		Mocks      *Mocks
-		SetupMocks func(*Mocks)
-		Subject    *mockgen.Generator
+		Mocks         *Mocks
+		AssembleMocks func(*Mocks) []*gomock.Call
+		Subject       *mockgen.Generator
 	}{
 		{
 			Name: "with simple valid config",
@@ -58,7 +60,7 @@ func TestGenerateMocks(t *testing.T) {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				const expectedMockFile1 = `<abc mock stuff here>
 
 // NEW creates a MockIface1.
@@ -84,7 +86,7 @@ func (*MockIface3) NEW(ctrl *gomock.Controller) *MockIface3 {
 }
 `
 
-				gomock.InOrder(
+				return []*gomock.Call{
 					// Package 1
 
 					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
@@ -124,7 +126,7 @@ func (*MockIface3) NEW(ctrl *gomock.Controller) *MockIface3 {
 							expectedFilePerm,
 						).
 						Return(nil),
-				)
+				}
 			},
 		},
 
@@ -149,7 +151,7 @@ func (*MockIface3) NEW(ctrl *gomock.Controller) *MockIface3 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				const expectedMockFile1 = `<abc mock stuff here>
 
 // NEW creates a MockIface1.
@@ -165,7 +167,7 @@ func (*MockIface2) NEW(ctrl *gomock.Controller) *MockIface2 {
 }
 `
 
-				gomock.InOrder(
+				return []*gomock.Call{
 					// Package 1
 
 					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
@@ -205,7 +207,7 @@ func (*MockIface2) NEW(ctrl *gomock.Controller) *MockIface2 {
 							expectedFilePerm,
 						).
 						Return(nil),
-				)
+				}
 			},
 		},
 
@@ -225,7 +227,7 @@ func (*MockIface2) NEW(ctrl *gomock.Controller) *MockIface2 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				const expectedMockFile1 = `<abc mock stuff here>
 
 // NEW creates a MockIface1.
@@ -234,7 +236,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 }
 `
 
-				gomock.InOrder(
+				return []*gomock.Call{
 					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
@@ -252,7 +254,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 							expectedFilePerm,
 						).
 						Return(nil),
-				)
+				}
 			},
 		},
 
@@ -272,7 +274,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				const expectedMockFile1 = `<abc mock stuff here>
 
 // NEW creates a MockIface1.
@@ -281,7 +283,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 }
 `
 
-				gomock.InOrder(
+				return []*gomock.Call{
 					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
 						PWD:  "/root/path/abc",
 						CMD:  "mockgen",
@@ -299,7 +301,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 							expectedFilePerm,
 						).
 						Return(nil),
-				)
+				}
 			},
 		},
 
@@ -319,12 +321,51 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
-				m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
-					PWD:  "/root/path",
-					CMD:  "mockgen",
-					Args: []string{"github.com/some/pkg/abc", "Iface1"},
-				}).Return("", errors.New("mockgen error"))
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("", errors.New("mockgen error")),
+				}
+			},
+		},
+
+		{
+			Name:          "when unable to run mockgen for multiple packages",
+			ExpectedError: mockgen.ErrMockGenFailed,
+			Config: &ensurefile.Config{
+				RootPath:   "/root/path",
+				ModulePath: "github.com/my/mod",
+				Mocks: &ensurefile.MockConfig{
+					Packages: []*ensurefile.Package{
+						{
+							Path:       "github.com/some/pkg/abc",
+							Interfaces: []string{"Iface1"},
+						},
+						{
+							Path:       "github.com/some/pkg/xyz",
+							Interfaces: []string{"Iface2"},
+						},
+					},
+				},
+			},
+
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("", errors.New("mockgen error 1")),
+
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/xyz", "Iface2"},
+					}).Return("", errors.New("mockgen error 2")),
+				}
 			},
 		},
 
@@ -344,16 +385,18 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
-				m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
-					PWD:  "/root/path",
-					CMD:  "mockgen",
-					Args: []string{"github.com/some/pkg/abc", "Iface1"},
-				}).Return("<abc mock stuff here>\n", nil)
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("<abc mock stuff here>\n", nil),
 
-				m.FSWrite.EXPECT().
-					MkdirAll("/root/path/internal/mocks/github.com/some/pkg/mock_abc", expectedDirPerm).
-					Return(errors.New("couldn't create the directory"))
+					m.FSWrite.EXPECT().
+						MkdirAll("/root/path/internal/mocks/github.com/some/pkg/mock_abc", expectedDirPerm).
+						Return(errors.New("couldn't create the directory")),
+				}
 			},
 		},
 
@@ -373,24 +416,26 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				},
 			},
 
-			SetupMocks: func(m *Mocks) {
-				m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
-					PWD:  "/root/path",
-					CMD:  "mockgen",
-					Args: []string{"github.com/some/pkg/abc", "Iface1"},
-				}).Return("<abc mock stuff here>\n", nil)
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("<abc mock stuff here>\n", nil),
 
-				m.FSWrite.EXPECT().
-					MkdirAll("/root/path/internal/mocks/github.com/some/pkg/mock_abc", expectedDirPerm).
-					Return(nil)
+					m.FSWrite.EXPECT().
+						MkdirAll("/root/path/internal/mocks/github.com/some/pkg/mock_abc", expectedDirPerm).
+						Return(nil),
 
-				m.FSWrite.EXPECT().
-					WriteFile(
-						"/root/path/internal/mocks/github.com/some/pkg/mock_abc/mock_abc.go",
-						gomock.Any(),
-						expectedFilePerm,
-					).
-					Return(errors.New("some write failure"))
+					m.FSWrite.EXPECT().
+						WriteFile(
+							"/root/path/internal/mocks/github.com/some/pkg/mock_abc/mock_abc.go",
+							gomock.Any(),
+							expectedFilePerm,
+						).
+						Return(errors.New("some write failure")),
+				}
 			},
 		},
 
@@ -493,10 +538,33 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 		},
 	}
 
-	ensure.RunTableByIndex(table, func(ensure ensurepkg.Ensure, i int) {
-		entry := table[i]
+	ensure.Run("when parallel mode disabled", func(ensure ensurepkg.Ensure) {
+		ensure.RunTableByIndex(table, func(ensure ensurepkg.Ensure, i int) {
+			entry := table[i]
+			entry.Subject.Logger = log.New(ioutil.Discard, "", 0)
+			entry.Config.DisableParallelGeneration = true
 
-		err := entry.Subject.GenerateMocks(entry.Config)
-		ensure(err).IsError(err)
+			if entry.AssembleMocks != nil {
+				gomock.InOrder(entry.AssembleMocks(entry.Mocks)...)
+			}
+
+			err := entry.Subject.GenerateMocks(entry.Config)
+			ensure(err).IsError(err)
+		})
+	})
+
+	ensure.Run("when parallel mode enabled", func(ensure ensurepkg.Ensure) {
+		ensure.RunTableByIndex(table, func(ensure ensurepkg.Ensure, i int) {
+			entry := table[i]
+			entry.Subject.Logger = log.New(ioutil.Discard, "", 0)
+			entry.Config.DisableParallelGeneration = false
+
+			if entry.AssembleMocks != nil {
+				entry.AssembleMocks(entry.Mocks)
+			}
+
+			err := entry.Subject.GenerateMocks(entry.Config)
+			ensure(err).IsError(err)
+		})
 	})
 }
