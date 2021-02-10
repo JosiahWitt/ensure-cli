@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"os"
 
 	"bursavich.dev/fs-shim/io/fs"
@@ -15,7 +16,7 @@ import (
 //nolint:gochecknoglobals // Allows injecting the version
 // Version of the CLI.
 // Should be tied to the release version.
-var Version = "0.1.0"
+var Version = "0.1.1"
 
 func main() {
 	app := cmd.App{
@@ -23,7 +24,11 @@ func main() {
 
 		Getwd:            os.Getwd,
 		EnsureFileLoader: &ensurefile.Loader{FS: fs.DirFS("")},
-		MockGenerator:    &mockgen.Generator{CmdRun: &runcmd.Runner{}, FSWrite: &fswrite.FSWrite{}},
+		MockGenerator: &mockgen.Generator{
+			CmdRun:  &runcmd.Runner{},
+			FSWrite: &fswrite.FSWrite{},
+			Logger:  log.New(os.Stdout, "", 0),
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {

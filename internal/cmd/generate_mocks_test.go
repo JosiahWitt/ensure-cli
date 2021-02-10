@@ -28,6 +28,7 @@ func TestGenerateMocks(t *testing.T) {
 	table := []struct {
 		Name          string
 		ExpectedError error
+		Flags         []string
 
 		Getwd      func() (string, error)
 		Mocks      *Mocks
@@ -47,6 +48,26 @@ func TestGenerateMocks(t *testing.T) {
 				m.MockGen.EXPECT().
 					GenerateMocks(&ensurefile.Config{
 						RootPath: "/some/root/path",
+					}).
+					Return(nil)
+			},
+		},
+
+		{
+			Name:  "with valid execution: disabled parallel generation",
+			Flags: []string{"--disable-parallel"},
+			Getwd: defaultWd,
+			SetupMocks: func(m *Mocks) {
+				m.EnsureFileLoader.EXPECT().
+					LoadConfig("/test").
+					Return(&ensurefile.Config{
+						RootPath: "/some/root/path",
+					}, nil)
+
+				m.MockGen.EXPECT().
+					GenerateMocks(&ensurefile.Config{
+						RootPath:                  "/some/root/path",
+						DisableParallelGeneration: true,
 					}).
 					Return(nil)
 			},
@@ -91,7 +112,7 @@ func TestGenerateMocks(t *testing.T) {
 		entry := table[i]
 		entry.Subject.Getwd = entry.Getwd
 
-		err := entry.Subject.Run([]string{"ensure", "generate", "mocks"})
+		err := entry.Subject.Run(append([]string{"ensure", "generate", "mocks"}, entry.Flags...))
 		ensure(err).IsError(entry.ExpectedError)
 	})
 }

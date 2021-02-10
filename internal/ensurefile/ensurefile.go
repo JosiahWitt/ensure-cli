@@ -3,6 +3,7 @@ package ensurefile
 
 import (
 	"errors"
+	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -56,9 +57,11 @@ var _ LoaderIface = &Loader{}
 
 // Config is the root of the .ensure.yml file.
 type Config struct {
-	RootPath   string      `yaml:"-"`
-	ModulePath string      `yaml:"-"`
-	Mocks      *MockConfig `yaml:"mocks"`
+	DisableParallelGeneration bool   `yaml:"-"`
+	RootPath                  string `yaml:"-"`
+	ModulePath                string `yaml:"-"`
+
+	Mocks *MockConfig `yaml:"mocks"`
 }
 
 type MockConfig struct {
@@ -118,4 +121,9 @@ func (l *Loader) LoadConfig(pwd string) (*Config, error) {
 	config.RootPath = "/" + pwd
 	config.ModulePath = modulePath
 	return &config, nil
+}
+
+// String exposes the Package as `<Path>:<Interfaces[0]>,<Interfaces[1]>,...`.
+func (pkg *Package) String() string {
+	return fmt.Sprintf("%s:%s", pkg.Path, strings.Join(pkg.Interfaces, ","))
 }
