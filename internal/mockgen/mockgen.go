@@ -17,6 +17,7 @@ import (
 const (
 	defaultPrimaryDestination  = "internal/mocks"
 	defaultInternalDestination = "mocks"
+	gomockReflectDirPattern    = "gomock_reflect_*"
 )
 
 type (
@@ -46,7 +47,7 @@ var (
 )
 
 type GeneratorIface interface {
-	GenerateMocks(config *ensurefile.Config) error
+	GenerateMocks(config *ensurefile.Config, registerCleanup func(func() error)) error
 }
 
 type Generator struct {
@@ -58,34 +59,24 @@ type Generator struct {
 var _ GeneratorIface = &Generator{}
 
 // GenerateMocks for the provided configuration.
-func (g *Generator) GenerateMocks(config *ensurefile.Config) error {
-	if config.Mocks == nil {
-		return ErrMissingMockConfig
+func (g *Generator) GenerateMocks(config *ensurefile.Config, registerCleanup func(func() error)) error {
+	if err := validateConfig(config); err != nil {
+		return err
 	}
 
-	if config.Mocks.PrimaryDestination == "" {
-		config.Mocks.PrimaryDestination = defaultPrimaryDestination
+	mockDestinations, err := computeMockDestinations(config)
+	if err != nil {
+		return err
 	}
 
-	if config.Mocks.InternalDestination == "" {
-		config.Mocks.InternalDestination = defaultInternalDestination
-	}
+	for _, pwd := range mockDestinations.uniquePWDs() {
+		pwd := pwd // Pin range variable
 
-	packages := config.Mocks.Packages
-	if len(packages) < 1 {
-		return ErrMissingPackages
-	}
-
-	// Ensure no duplicate package paths, since the last one would overwrite the first
-	packagePaths := map[string]bool{}
-	for _, pkg := range packages {
-		if _, ok := packagePaths[pkg.Path]; ok {
-			return erk.WithParams(ErrDuplicatePackagePath, erk.Params{
-				"packagePath": pkg.Path,
-			})
-		}
-
-		packagePaths[pkg.Path] = true
+		registerCleanup(func() error {
+			pattern := filepath.Join(pwd, gomockReflectDirPattern)
+			g.Logger.Printf("Cleaning up: %s", pattern)
+			return g.FSWrite.GlobRemoveAll(pattern)
+		})
 	}
 
 	asyncParams := &generateMockAsyncParams{
@@ -93,14 +84,14 @@ func (g *Generator) GenerateMocks(config *ensurefile.Config) error {
 	}
 
 	g.Logger.Println("Generating mocks:")
-	for _, pkg := range packages {
+	for _, mockDestination := range mockDestinations {
 		if !config.DisableParallelGeneration {
 			asyncParams.wg.Add(1)
-			go g.generateMockAsync(config, pkg, asyncParams)
+			go g.generateMockAsync(mockDestination, asyncParams)
 		} else {
-			g.Logger.Printf(" - Generating: %s\n", pkg.String())
+			g.Logger.Printf(" - Generating: %s\n", mockDestination.Package.String())
 
-			if err := g.generateMock(config, pkg); err != nil {
+			if err := g.generateMock(mockDestination); err != nil {
 				asyncParams.errors = erg.Append(asyncParams.errors, err)
 			}
 		}
@@ -120,20 +111,22 @@ type generateMockAsyncParams struct {
 	errorsMu sync.Mutex
 }
 
-func (g *Generator) generateMockAsync(config *ensurefile.Config, pkg *ensurefile.Package, asyncParams *generateMockAsyncParams) {
+func (g *Generator) generateMockAsync(mockDestination *mockDestination, asyncParams *generateMockAsyncParams) {
 	defer asyncParams.wg.Done()
 
-	if err := g.generateMock(config, pkg); err != nil {
+	if err := g.generateMock(mockDestination); err != nil {
 		asyncParams.errorsMu.Lock()
 		defer asyncParams.errorsMu.Unlock()
 		asyncParams.errors = erg.Append(asyncParams.errors, err)
 		return
 	}
 
-	g.Logger.Printf(" - Generated: %s\n", pkg.String())
+	g.Logger.Printf(" - Generated: %s\n", mockDestination.Package.String())
 }
 
-func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Package) error {
+func (g *Generator) generateMock(mockDestination *mockDestination) error {
+	pkg := mockDestination.Package
+
 	if pkg.Path == "" {
 		return ErrMissingPackagePath
 	}
@@ -142,11 +135,6 @@ func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Pack
 		return erk.WithParams(ErrMissingPackageInterfaces, erk.Params{
 			"packagePath": pkg.Path,
 		})
-	}
-
-	mockDestination, err := computeMockDestination(config, pkg)
-	if err != nil {
-		return err
 	}
 
 	result, err := g.CmdRun.Exec(&runcmd.ExecParams{
@@ -178,6 +166,39 @@ func (g *Generator) generateMock(config *ensurefile.Config, pkg *ensurefile.Pack
 		return erk.WrapWith(ErrUnableToCreateFile, err, erk.Params{
 			"path": mockFilePath,
 		})
+	}
+
+	return nil
+}
+
+func validateConfig(config *ensurefile.Config) error {
+	if config.Mocks == nil {
+		return ErrMissingMockConfig
+	}
+
+	if config.Mocks.PrimaryDestination == "" {
+		config.Mocks.PrimaryDestination = defaultPrimaryDestination
+	}
+
+	if config.Mocks.InternalDestination == "" {
+		config.Mocks.InternalDestination = defaultInternalDestination
+	}
+
+	packages := config.Mocks.Packages
+	if len(packages) < 1 {
+		return ErrMissingPackages
+	}
+
+	// Ensure no duplicate package paths, since the last one would overwrite the first
+	packagePaths := map[string]bool{}
+	for _, pkg := range packages {
+		if _, ok := packagePaths[pkg.Path]; ok {
+			return erk.WithParams(ErrDuplicatePackagePath, erk.Params{
+				"packagePath": pkg.Path,
+			})
+		}
+
+		packagePaths[pkg.Path] = true
 	}
 
 	return nil

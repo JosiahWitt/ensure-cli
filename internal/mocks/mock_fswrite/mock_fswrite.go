@@ -34,6 +34,20 @@ func (m *MockFSWriteIface) EXPECT() *MockFSWriteIfaceMockRecorder {
 	return m.recorder
 }
 
+// GlobRemoveAll mocks base method.
+func (m *MockFSWriteIface) GlobRemoveAll(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GlobRemoveAll", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GlobRemoveAll indicates an expected call of GlobRemoveAll.
+func (mr *MockFSWriteIfaceMockRecorder) GlobRemoveAll(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobRemoveAll", reflect.TypeOf((*MockFSWriteIface)(nil).GlobRemoveAll), arg0)
+}
+
 // MkdirAll mocks base method.
 func (m *MockFSWriteIface) MkdirAll(arg0 string, arg1 os.FileMode) error {
 	m.ctrl.T.Helper()

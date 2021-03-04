@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/JosiahWitt/ensure-cli/internal/exitcleanup"
 	"github.com/urfave/cli/v2"
 )
 
@@ -39,7 +40,7 @@ func (a *App) generateMocksCmd() *cli.Command {
 			}
 
 			config.DisableParallelGeneration = c.Bool("disable-parallel")
-			return a.MockGenerator.GenerateMocks(config)
+			return a.MockGenerator.GenerateMocks(config, exitcleanup.New(a.Logger).Register)
 		},
 	}
 }

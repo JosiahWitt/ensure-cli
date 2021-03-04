@@ -35,17 +35,17 @@ func (m *MockGeneratorIface) EXPECT() *MockGeneratorIfaceMockRecorder {
 }
 
 // GenerateMocks mocks base method.
-func (m *MockGeneratorIface) GenerateMocks(arg0 *ensurefile.Config) error {
+func (m *MockGeneratorIface) GenerateMocks(arg0 *ensurefile.Config, arg1 func(func() error)) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateMocks", arg0)
+	ret := m.ctrl.Call(m, "GenerateMocks", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // GenerateMocks indicates an expected call of GenerateMocks.
-func (mr *MockGeneratorIfaceMockRecorder) GenerateMocks(arg0 interface{}) *gomock.Call {
+func (mr *MockGeneratorIfaceMockRecorder) GenerateMocks(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateMocks", reflect.TypeOf((*MockGeneratorIface)(nil).GenerateMocks), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateMocks", reflect.TypeOf((*MockGeneratorIface)(nil).GenerateMocks), arg0, arg1)
 }
 
 // NEW creates a MockGeneratorIface.
