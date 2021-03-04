@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"log"
+
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
 	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
 	"github.com/urfave/cli/v2"
@@ -10,6 +12,7 @@ import (
 type App struct {
 	Version string
 
+	Logger           *log.Logger
 	Getwd            func() (string, error)
 	EnsureFileLoader ensurefile.LoaderIface
 	MockGenerator    mockgen.GeneratorIface

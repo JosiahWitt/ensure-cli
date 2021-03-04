@@ -10,6 +10,7 @@ import (
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_ensurefile"
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_mockgen"
 	"github.com/JosiahWitt/ensure/ensurepkg"
+	"github.com/golang/mock/gomock"
 )
 
 func TestGenerateMocks(t *testing.T) {
@@ -48,7 +49,7 @@ func TestGenerateMocks(t *testing.T) {
 				m.MockGen.EXPECT().
 					GenerateMocks(&ensurefile.Config{
 						RootPath: "/some/root/path",
-					}).
+					}, gomock.Any()).
 					Return(nil)
 			},
 		},
@@ -68,7 +69,7 @@ func TestGenerateMocks(t *testing.T) {
 					GenerateMocks(&ensurefile.Config{
 						RootPath:                  "/some/root/path",
 						DisableParallelGeneration: true,
-					}).
+					}, gomock.Any()).
 					Return(nil)
 			},
 		},
@@ -102,7 +103,7 @@ func TestGenerateMocks(t *testing.T) {
 				m.MockGen.EXPECT().
 					GenerateMocks(&ensurefile.Config{
 						RootPath: "/some/root/path",
-					}).
+					}, gomock.Any()).
 					Return(exampleError)
 			},
 		},
