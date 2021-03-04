@@ -548,7 +548,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				gomock.InOrder(entry.AssembleMocks(entry.Mocks)...)
 			}
 
-			err := entry.Subject.GenerateMocks(entry.Config)
+			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
 			ensure(err).IsError(err)
 		})
 	})
@@ -563,8 +563,67 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 				entry.AssembleMocks(entry.Mocks)
 			}
 
-			err := entry.Subject.GenerateMocks(entry.Config)
+			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
 			ensure(err).IsError(err)
 		})
+	})
+
+	ensure.Run("cleanup callbacks", func(ensure ensurepkg.Ensure) {
+		mockFSWrite := mock_fswrite.NewMockFSWriteIface(ensure.GoMockController())
+		mockRunCmd := mock_runcmd.NewMockRunnerIface(ensure.GoMockController())
+
+		gen := mockgen.Generator{
+			Logger:  log.New(ioutil.Discard, "", 0),
+			CmdRun:  mockRunCmd,
+			FSWrite: mockFSWrite,
+		}
+
+		mockRunCmd.EXPECT().Exec(gomock.Any()).AnyTimes()
+		mockFSWrite.EXPECT().WriteFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockFSWrite.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).AnyTimes()
+
+		cleanupFuncs := []func() error{}
+		err := gen.GenerateMocks(
+			&ensurefile.Config{
+				RootPath:   "/root/path",
+				ModulePath: "github.com/my/mod",
+				Mocks: &ensurefile.MockConfig{
+					Packages: []*ensurefile.Package{
+						// Mocks generated at: /root/path
+						{
+							Path:       "github.com/some/pkg/abc",
+							Interfaces: []string{"Iface1", "Iface2"},
+						},
+						{
+							Path:       "github.com/some/pkg/xyz",
+							Interfaces: []string{"Iface2", "Iface3"},
+						},
+
+						// Mocks generated at: /root/path/layer1/layer2/internal/layer3/layer4
+						{
+							Path:       "github.com/my/mod/layer1/layer2/internal/layer3/layer4/internal/layer5/layer6/abc",
+							Interfaces: []string{"Iface2", "Iface4"},
+						},
+						{
+							Path:       "github.com/my/mod/layer1/layer2/internal/layer3/layer4/internal/layer5/layer6/xyz",
+							Interfaces: []string{"Iface4", "Iface5"},
+						},
+					},
+				},
+			},
+
+			func(fn func() error) {
+				cleanupFuncs = append(cleanupFuncs, fn)
+			},
+		)
+		ensure(err).IsNotError()
+
+		exampleErr := errors.New("example error")
+		mockFSWrite.EXPECT().GlobRemoveAll("/root/path/gomock_reflect_*").Return(nil)
+		mockFSWrite.EXPECT().GlobRemoveAll("/root/path/layer1/layer2/internal/layer3/layer4/gomock_reflect_*").Return(exampleErr)
+
+		ensure(len(cleanupFuncs)).Equals(2)
+		ensure(cleanupFuncs[0]()).IsNotError()
+		ensure(cleanupFuncs[1]()).IsError(exampleErr)
 	})
 }
