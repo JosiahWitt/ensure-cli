@@ -46,4 +46,15 @@ func TestRunnerExec(t *testing.T) {
 		ensure(err.Error()).Equals("abc\n")
 		ensure(result).IsEmpty()
 	})
+
+	ensure.Run("with failing command and no output", func(ensure ensurepkg.Ensure) {
+		runner := runcmd.Runner{}
+		result, err := runner.Exec(&runcmd.ExecParams{
+			CMD:  "sh",
+			Args: []string{"-c", "exit 1"},
+		})
+
+		ensure(err.Error()).Equals("exit status 1")
+		ensure(result).IsEmpty()
+	})
 }

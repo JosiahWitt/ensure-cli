@@ -370,6 +370,32 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 		},
 
 		{
+			Name: "when mockgen is terminated",
+			Config: &ensurefile.Config{
+				RootPath:   "/root/path",
+				ModulePath: "github.com/my/mod",
+				Mocks: &ensurefile.MockConfig{
+					Packages: []*ensurefile.Package{
+						{
+							Path:       "github.com/some/pkg/abc",
+							Interfaces: []string{"Iface1"},
+						},
+					},
+				},
+			},
+
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("", runcmd.ErrProcessTerminated),
+				}
+			},
+		},
+
+		{
 			Name:          "when unable to create directory",
 			ExpectedError: mockgen.ErrUnableToCreateDir,
 			Config: &ensurefile.Config{
@@ -402,7 +428,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 		{
 			Name:          "when unable to create file",
-			ExpectedError: mockgen.ErrUnableToCreateDir,
+			ExpectedError: mockgen.ErrUnableToCreateFile,
 			Config: &ensurefile.Config{
 				RootPath:   "/root/path",
 				ModulePath: "github.com/my/mod",
@@ -549,7 +575,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 			}
 
 			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
-			ensure(err).IsError(err)
+			ensure(err).IsError(entry.ExpectedError)
 		})
 	})
 
@@ -564,7 +590,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 			}
 
 			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
-			ensure(err).IsError(err)
+			ensure(err).IsError(entry.ExpectedError)
 		})
 	})
 
@@ -623,7 +649,14 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 		mockFSWrite.EXPECT().GlobRemoveAll("/root/path/layer1/layer2/internal/layer3/layer4/gomock_reflect_*").Return(exampleErr)
 
 		ensure(len(cleanupFuncs)).Equals(2)
-		ensure(cleanupFuncs[0]()).IsNotError()
-		ensure(cleanupFuncs[1]()).IsError(exampleErr)
+		err1 := cleanupFuncs[0]()
+		err2 := cleanupFuncs[1]()
+
+		// Prevent flaky tests
+		if err1 == nil {
+			ensure(err2).IsError(exampleErr)
+		} else if err2 == nil {
+			ensure(err1).IsError(exampleErr)
+		}
 	})
 }

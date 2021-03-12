@@ -1,6 +1,7 @@
 package mockgen
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -146,6 +147,11 @@ func (g *Generator) generateMock(mockDestination *mockDestination) error {
 		},
 	})
 	if err != nil {
+		if errors.Is(err, runcmd.ErrProcessTerminated) {
+			// If the process was terminated, ignore the error, but return early
+			return nil
+		}
+
 		return erk.WrapWith(ErrMockGenFailed, err, erk.Params{
 			"packageDescription": pkg.String(),
 		})
