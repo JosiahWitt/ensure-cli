@@ -66,13 +66,13 @@ func TestRunnerExec(t *testing.T) {
 
 		go func() {
 			// Allow time for command to start before cancelling
-			time.Sleep(5 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 			cancel()
 		}()
 
 		result, err := runner.Exec(ctx, &runcmd.ExecParams{
 			CMD:  "sh",
-			Args: []string{"-c", "sleep 0.2"},
+			Args: []string{"-c", "sleep 0.1"},
 		})
 
 		ensure(err).IsError(runcmd.ErrProcessTerminated)

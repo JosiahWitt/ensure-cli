@@ -1,5 +1,8 @@
 mocks:
   packages:
+    - path: context
+      interfaces: [Context]
+
     - path: bursavich.dev/fs-shim/io/fs
       interfaces: [ReadFileFS]
 
@@ -14,3 +17,6 @@ mocks:
 
     - path: github.com/JosiahWitt/ensure-cli/internal/mockgen
       interfaces: [GeneratorIface]
+
+    - path: github.com/JosiahWitt/ensure-cli/internal/exitcleanup
+      interfaces: [ExitCleaner]

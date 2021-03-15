@@ -1,13 +1,16 @@
 package cmd_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
 	"github.com/JosiahWitt/ensure"
 	"github.com/JosiahWitt/ensure-cli/internal/cmd"
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_context"
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_exitcleanup"
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_mockgen"
 	"github.com/JosiahWitt/ensure/ensurepkg"
 	"github.com/golang/mock/gomock"
@@ -16,9 +19,13 @@ import (
 func TestGenerateMocks(t *testing.T) {
 	ensure := ensure.New(t)
 
+	type ContextKey struct{}
+
 	type Mocks struct {
+		Context          *mock_context.MockContext `ensure:"ignoreunused"`
 		EnsureFileLoader *mock_ensurefile.MockLoaderIface
 		MockGen          *mock_mockgen.MockGeneratorIface
+		Cleanup          *mock_exitcleanup.MockExitCleaner
 	}
 
 	exampleError := errors.New("something went wrong")
@@ -46,10 +53,13 @@ func TestGenerateMocks(t *testing.T) {
 						RootPath: "/some/root/path",
 					}, nil)
 
+				ctx := context.WithValue(m.Context, ContextKey{}, "123")
+				m.Cleanup.EXPECT().ToContext(gomock.Any()).Return(ctx)
+
 				m.MockGen.EXPECT().
-					GenerateMocks(&ensurefile.Config{
+					GenerateMocks(ctx, &ensurefile.Config{
 						RootPath: "/some/root/path",
-					}, gomock.Any()).
+					}).
 					Return(nil)
 			},
 		},
@@ -65,11 +75,14 @@ func TestGenerateMocks(t *testing.T) {
 						RootPath: "/some/root/path",
 					}, nil)
 
+				ctx := context.WithValue(m.Context, ContextKey{}, "123")
+				m.Cleanup.EXPECT().ToContext(gomock.Any()).Return(ctx)
+
 				m.MockGen.EXPECT().
-					GenerateMocks(&ensurefile.Config{
+					GenerateMocks(ctx, &ensurefile.Config{
 						RootPath:                  "/some/root/path",
 						DisableParallelGeneration: true,
-					}, gomock.Any()).
+					}).
 					Return(nil)
 			},
 		},
@@ -100,10 +113,13 @@ func TestGenerateMocks(t *testing.T) {
 						RootPath: "/some/root/path",
 					}, nil)
 
+				ctx := context.WithValue(m.Context, ContextKey{}, "123")
+				m.Cleanup.EXPECT().ToContext(gomock.Any()).Return(ctx)
+
 				m.MockGen.EXPECT().
-					GenerateMocks(&ensurefile.Config{
+					GenerateMocks(ctx, &ensurefile.Config{
 						RootPath: "/some/root/path",
-					}, gomock.Any()).
+					}).
 					Return(exampleError)
 			},
 		},
