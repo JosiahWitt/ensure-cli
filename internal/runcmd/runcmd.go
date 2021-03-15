@@ -1,6 +1,7 @@
 package runcmd
 
 import (
+	"context"
 	"errors"
 	"os/exec"
 )
@@ -14,7 +15,7 @@ type ExecParams struct {
 }
 
 type RunnerIface interface {
-	Exec(*ExecParams) (string, error)
+	Exec(ctx context.Context, params *ExecParams) (string, error)
 }
 
 type Runner struct{}
@@ -22,9 +23,9 @@ type Runner struct{}
 var _ RunnerIface = &Runner{}
 
 // Exec the command defined in the provided params.
-func (*Runner) Exec(params *ExecParams) (string, error) {
+func (*Runner) Exec(ctx context.Context, params *ExecParams) (string, error) {
 	//nolint:gosec
-	c := exec.Command(params.CMD, params.Args...)
+	c := exec.CommandContext(ctx, params.CMD, params.Args...)
 	c.Dir = params.PWD
 	out, err := c.CombinedOutput()
 	if err != nil {

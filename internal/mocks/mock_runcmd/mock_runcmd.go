@@ -5,6 +5,7 @@
 package mock_runcmd
 
 import (
+	context "context"
 	reflect "reflect"
 
 	runcmd "github.com/JosiahWitt/ensure-cli/internal/runcmd"
@@ -35,18 +36,18 @@ func (m *MockRunnerIface) EXPECT() *MockRunnerIfaceMockRecorder {
 }
 
 // Exec mocks base method.
-func (m *MockRunnerIface) Exec(arg0 *runcmd.ExecParams) (string, error) {
+func (m *MockRunnerIface) Exec(arg0 context.Context, arg1 *runcmd.ExecParams) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exec", arg0)
+	ret := m.ctrl.Call(m, "Exec", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Exec indicates an expected call of Exec.
-func (mr *MockRunnerIfaceMockRecorder) Exec(arg0 interface{}) *gomock.Call {
+func (mr *MockRunnerIfaceMockRecorder) Exec(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockRunnerIface)(nil).Exec), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exec", reflect.TypeOf((*MockRunnerIface)(nil).Exec), arg0, arg1)
 }
 
 // NEW creates a MockRunnerIface.
