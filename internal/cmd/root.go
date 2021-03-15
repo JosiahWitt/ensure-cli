@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/exitcleanup"
 	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
 	"github.com/urfave/cli/v2"
 )
@@ -16,6 +17,7 @@ type App struct {
 	Getwd            func() (string, error)
 	EnsureFileLoader ensurefile.LoaderIface
 	MockGenerator    mockgen.GeneratorIface
+	Cleanup          exitcleanup.ExitCleaner
 }
 
 // Run the application given the os.Args array.

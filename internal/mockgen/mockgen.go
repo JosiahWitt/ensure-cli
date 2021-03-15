@@ -1,6 +1,8 @@
 package mockgen
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -8,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
+	"github.com/JosiahWitt/ensure-cli/internal/exitcleanup"
 	"github.com/JosiahWitt/ensure-cli/internal/fswrite"
 	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 	"github.com/JosiahWitt/erk"
@@ -47,19 +50,20 @@ var (
 )
 
 type GeneratorIface interface {
-	GenerateMocks(config *ensurefile.Config, registerCleanup func(func() error)) error
+	GenerateMocks(ctx context.Context, config *ensurefile.Config) error
 }
 
 type Generator struct {
 	CmdRun  runcmd.RunnerIface
 	FSWrite fswrite.FSWriteIface
 	Logger  *log.Logger
+	Cleanup exitcleanup.ExitCleaner
 }
 
 var _ GeneratorIface = &Generator{}
 
 // GenerateMocks for the provided configuration.
-func (g *Generator) GenerateMocks(config *ensurefile.Config, registerCleanup func(func() error)) error {
+func (g *Generator) GenerateMocks(ctx context.Context, config *ensurefile.Config) error {
 	if err := validateConfig(config); err != nil {
 		return err
 	}
@@ -72,7 +76,7 @@ func (g *Generator) GenerateMocks(config *ensurefile.Config, registerCleanup fun
 	for _, pwd := range mockDestinations.uniquePWDs() {
 		pwd := pwd // Pin range variable
 
-		registerCleanup(func() error {
+		g.Cleanup.Register(func() error {
 			pattern := filepath.Join(pwd, gomockReflectDirPattern)
 			g.Logger.Printf("Cleaning up: %s", pattern)
 			return g.FSWrite.GlobRemoveAll(pattern)
@@ -87,12 +91,12 @@ func (g *Generator) GenerateMocks(config *ensurefile.Config, registerCleanup fun
 	for _, mockDestination := range mockDestinations {
 		if !config.DisableParallelGeneration {
 			asyncParams.wg.Add(1)
-			go g.generateMockAsync(mockDestination, asyncParams)
+			go g.generateMockAsync(ctx, mockDestination, asyncParams)
 		} else {
 			g.Logger.Printf(" - Generating: %s\n", mockDestination.Package.String())
 
-			if err := g.generateMock(mockDestination); err != nil {
-				asyncParams.errors = erg.Append(asyncParams.errors, err)
+			if err := g.generateMock(ctx, mockDestination); err != nil {
+				asyncParams.addError(err)
 			}
 		}
 	}
@@ -111,20 +115,18 @@ type generateMockAsyncParams struct {
 	errorsMu sync.Mutex
 }
 
-func (g *Generator) generateMockAsync(mockDestination *mockDestination, asyncParams *generateMockAsyncParams) {
+func (g *Generator) generateMockAsync(ctx context.Context, mockDestination *mockDestination, asyncParams *generateMockAsyncParams) {
 	defer asyncParams.wg.Done()
 
-	if err := g.generateMock(mockDestination); err != nil {
-		asyncParams.errorsMu.Lock()
-		defer asyncParams.errorsMu.Unlock()
-		asyncParams.errors = erg.Append(asyncParams.errors, err)
+	if err := g.generateMock(ctx, mockDestination); err != nil {
+		asyncParams.addError(err)
 		return
 	}
 
 	g.Logger.Printf(" - Generated: %s\n", mockDestination.Package.String())
 }
 
-func (g *Generator) generateMock(mockDestination *mockDestination) error {
+func (g *Generator) generateMock(ctx context.Context, mockDestination *mockDestination) error {
 	pkg := mockDestination.Package
 
 	if pkg.Path == "" {
@@ -137,7 +139,7 @@ func (g *Generator) generateMock(mockDestination *mockDestination) error {
 		})
 	}
 
-	result, err := g.CmdRun.Exec(&runcmd.ExecParams{
+	result, err := g.CmdRun.Exec(ctx, &runcmd.ExecParams{
 		PWD: mockDestination.PWD,
 		CMD: "mockgen", // TODO: Allow overriding
 		Args: []string{
@@ -169,6 +171,17 @@ func (g *Generator) generateMock(mockDestination *mockDestination) error {
 	}
 
 	return nil
+}
+
+func (asyncParams *generateMockAsyncParams) addError(err error) {
+	if errors.Is(err, runcmd.ErrProcessTerminated) {
+		// If the process was terminated, ignore the error
+		return
+	}
+
+	asyncParams.errorsMu.Lock()
+	defer asyncParams.errorsMu.Unlock()
+	asyncParams.errors = erg.Append(asyncParams.errors, err)
 }
 
 func validateConfig(config *ensurefile.Config) error {

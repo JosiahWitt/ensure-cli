@@ -1,6 +1,7 @@
 package mockgen_test
 
 import (
+	"context"
 	"errors"
 	"io/ioutil"
 	"log"
@@ -10,6 +11,8 @@ import (
 	"github.com/JosiahWitt/ensure"
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
 	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_context"
+	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_exitcleanup"
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_fswrite"
 	"github.com/JosiahWitt/ensure-cli/internal/mocks/mock_runcmd"
 	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
@@ -26,8 +29,10 @@ func TestGenerateMocks(t *testing.T) {
 	ensure := ensure.New(t)
 
 	type Mocks struct {
+		Context *mock_context.MockContext `ensure:"ignoreunused"`
 		CmdRun  *mock_runcmd.MockRunnerIface
 		FSWrite *mock_fswrite.MockFSWriteIface
+		Cleanup *mock_exitcleanup.MockExitCleaner
 	}
 
 	table := []struct {
@@ -89,7 +94,7 @@ func (*MockIface3) NEW(ctrl *gomock.Controller) *MockIface3 {
 				return []*gomock.Call{
 					// Package 1
 
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1,Iface2"},
@@ -109,7 +114,7 @@ func (*MockIface3) NEW(ctrl *gomock.Controller) *MockIface3 {
 
 					// Package 2
 
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/xyz", "Iface2,Iface3"},
@@ -170,7 +175,7 @@ func (*MockIface2) NEW(ctrl *gomock.Controller) *MockIface2 {
 				return []*gomock.Call{
 					// Package 1
 
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
@@ -190,7 +195,7 @@ func (*MockIface2) NEW(ctrl *gomock.Controller) *MockIface2 {
 
 					// Package 2
 
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path/layer1/layer2/internal/layer3/layer4",
 						CMD:  "mockgen",
 						Args: []string{"github.com/my/mod/layer1/layer2/internal/layer3/layer4/internal/layer5/layer6/xyz", "Iface2"},
@@ -237,7 +242,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 `
 
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
@@ -284,7 +289,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 `
 
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path/abc",
 						CMD:  "mockgen",
 						Args: []string{"github.com/my/mod/abc/internal/abc", "Iface1"},
@@ -323,7 +328,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
@@ -354,17 +359,43 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
 					}).Return("", errors.New("mockgen error 1")),
 
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/xyz", "Iface2"},
 					}).Return("", errors.New("mockgen error 2")),
+				}
+			},
+		},
+
+		{
+			Name: "when mockgen is terminated",
+			Config: &ensurefile.Config{
+				RootPath:   "/root/path",
+				ModulePath: "github.com/my/mod",
+				Mocks: &ensurefile.MockConfig{
+					Packages: []*ensurefile.Package{
+						{
+							Path:       "github.com/some/pkg/abc",
+							Interfaces: []string{"Iface1"},
+						},
+					},
+				},
+			},
+
+			AssembleMocks: func(m *Mocks) []*gomock.Call {
+				return []*gomock.Call{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
+						PWD:  "/root/path",
+						CMD:  "mockgen",
+						Args: []string{"github.com/some/pkg/abc", "Iface1"},
+					}).Return("", runcmd.ErrProcessTerminated),
 				}
 			},
 		},
@@ -387,7 +418,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
@@ -402,7 +433,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 		{
 			Name:          "when unable to create file",
-			ExpectedError: mockgen.ErrUnableToCreateDir,
+			ExpectedError: mockgen.ErrUnableToCreateFile,
 			Config: &ensurefile.Config{
 				RootPath:   "/root/path",
 				ModulePath: "github.com/my/mod",
@@ -418,7 +449,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 
 			AssembleMocks: func(m *Mocks) []*gomock.Call {
 				return []*gomock.Call{
-					m.CmdRun.EXPECT().Exec(&runcmd.ExecParams{
+					m.CmdRun.EXPECT().Exec(m.Context, &runcmd.ExecParams{
 						PWD:  "/root/path",
 						CMD:  "mockgen",
 						Args: []string{"github.com/some/pkg/abc", "Iface1"},
@@ -543,13 +574,14 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 			entry := table[i]
 			entry.Subject.Logger = log.New(ioutil.Discard, "", 0)
 			entry.Config.DisableParallelGeneration = true
+			entry.Mocks.Cleanup.EXPECT().Register(gomock.Any()).AnyTimes()
 
 			if entry.AssembleMocks != nil {
 				gomock.InOrder(entry.AssembleMocks(entry.Mocks)...)
 			}
 
-			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
-			ensure(err).IsError(err)
+			err := entry.Subject.GenerateMocks(entry.Mocks.Context, entry.Config)
+			ensure(err).IsError(entry.ExpectedError)
 		})
 	})
 
@@ -558,32 +590,40 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 			entry := table[i]
 			entry.Subject.Logger = log.New(ioutil.Discard, "", 0)
 			entry.Config.DisableParallelGeneration = false
+			entry.Mocks.Cleanup.EXPECT().Register(gomock.Any()).AnyTimes()
 
 			if entry.AssembleMocks != nil {
 				entry.AssembleMocks(entry.Mocks)
 			}
 
-			err := entry.Subject.GenerateMocks(entry.Config, func(func() error) {})
-			ensure(err).IsError(err)
+			err := entry.Subject.GenerateMocks(entry.Mocks.Context, entry.Config)
+			ensure(err).IsError(entry.ExpectedError)
 		})
 	})
 
 	ensure.Run("cleanup callbacks", func(ensure ensurepkg.Ensure) {
 		mockFSWrite := mock_fswrite.NewMockFSWriteIface(ensure.GoMockController())
 		mockRunCmd := mock_runcmd.NewMockRunnerIface(ensure.GoMockController())
+		mockExitCleanup := mock_exitcleanup.NewMockExitCleaner(ensure.GoMockController())
 
 		gen := mockgen.Generator{
 			Logger:  log.New(ioutil.Discard, "", 0),
 			CmdRun:  mockRunCmd,
 			FSWrite: mockFSWrite,
+			Cleanup: mockExitCleanup,
 		}
 
-		mockRunCmd.EXPECT().Exec(gomock.Any()).AnyTimes()
+		ctx := context.Background()
+		mockRunCmd.EXPECT().Exec(ctx, gomock.Any()).AnyTimes()
 		mockFSWrite.EXPECT().WriteFile(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockFSWrite.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).AnyTimes()
 
 		cleanupFuncs := []func() error{}
-		err := gen.GenerateMocks(
+		mockExitCleanup.EXPECT().Register(gomock.Any()).Do(func(fn func() error) {
+			cleanupFuncs = append(cleanupFuncs, fn)
+		}).AnyTimes()
+
+		err := gen.GenerateMocks(ctx,
 			&ensurefile.Config{
 				RootPath:   "/root/path",
 				ModulePath: "github.com/my/mod",
@@ -611,10 +651,6 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 					},
 				},
 			},
-
-			func(fn func() error) {
-				cleanupFuncs = append(cleanupFuncs, fn)
-			},
 		)
 		ensure(err).IsNotError()
 
@@ -623,7 +659,14 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 		mockFSWrite.EXPECT().GlobRemoveAll("/root/path/layer1/layer2/internal/layer3/layer4/gomock_reflect_*").Return(exampleErr)
 
 		ensure(len(cleanupFuncs)).Equals(2)
-		ensure(cleanupFuncs[0]()).IsNotError()
-		ensure(cleanupFuncs[1]()).IsError(exampleErr)
+		err1 := cleanupFuncs[0]()
+		err2 := cleanupFuncs[1]()
+
+		// Prevent flaky tests
+		if err1 == nil {
+			ensure(err2).IsError(exampleErr)
+		} else if err2 == nil {
+			ensure(err1).IsError(exampleErr)
+		}
 	})
 }

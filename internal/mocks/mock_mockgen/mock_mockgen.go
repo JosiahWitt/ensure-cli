@@ -5,6 +5,7 @@
 package mock_mockgen
 
 import (
+	context "context"
 	reflect "reflect"
 
 	ensurefile "github.com/JosiahWitt/ensure-cli/internal/ensurefile"
@@ -35,7 +36,7 @@ func (m *MockGeneratorIface) EXPECT() *MockGeneratorIfaceMockRecorder {
 }
 
 // GenerateMocks mocks base method.
-func (m *MockGeneratorIface) GenerateMocks(arg0 *ensurefile.Config, arg1 func(func() error)) error {
+func (m *MockGeneratorIface) GenerateMocks(arg0 context.Context, arg1 *ensurefile.Config) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateMocks", arg0, arg1)
 	ret0, _ := ret[0].(error)
