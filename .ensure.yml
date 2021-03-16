@@ -1,4 +1,5 @@
 mocks:
+  tidyAfterGenerate: true
   packages:
     - path: context
       interfaces: [Context]
