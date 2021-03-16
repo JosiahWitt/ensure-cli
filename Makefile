@@ -2,7 +2,7 @@ install-tools:
 	go get github.com/golang/mock/mockgen
 
 generate-mocks:
-	go run cmd/ensure/main.go generate mocks
+	go run cmd/ensure/main.go mocks generate
 
 test:
 	go test ./...

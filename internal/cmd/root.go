@@ -31,6 +31,7 @@ func (a *App) Run(args []string) error {
 
 		Commands: []*cli.Command{
 			a.generateCmd(),
+			a.mocksCmd(),
 		},
 	}
 
