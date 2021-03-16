@@ -89,22 +89,35 @@ func (dest *mockDestination) fullPath() string {
 }
 
 func (dests mockDestinations) uniquePWDs() []string {
-	return dests.uniqueString(func(dest *mockDestination) string {
-		return dest.PWD
-	})
+	uniquePWDMap := map[string]bool{}
+	for _, dest := range dests {
+		uniquePWDMap[dest.PWD] = true
+	}
+
+	uniquePWDs := []string{}
+	for uniquePWD := range uniquePWDMap {
+		uniquePWDs = append(uniquePWDs, uniquePWD)
+	}
+
+	return uniquePWDs
 }
 
-func (dests mockDestinations) uniqueString(fn func(dest *mockDestination) string) []string {
-	uniqueMap := map[string]bool{}
+func (dests mockDestinations) byFullMockDir() map[string]mockDestinations {
+	byMockDir := map[string]mockDestinations{}
 	for _, dest := range dests {
-		str := fn(dest)
-		uniqueMap[str] = true
+		key := filepath.Join(dest.PWD, dest.MockDir)
+		byMockDir[key] = append(byMockDir[key], dest)
 	}
 
-	items := []string{}
-	for item := range uniqueMap {
-		items = append(items, item)
+	return byMockDir
+}
+
+func (dests mockDestinations) hasFullPathPrefix(prefix string) bool {
+	for _, dest := range dests {
+		if strings.HasPrefix(dest.fullPath(), prefix) {
+			return true
+		}
 	}
 
-	return items
+	return false
 }

@@ -24,7 +24,7 @@ func TestGenerateMocks(t *testing.T) {
 	type Mocks struct {
 		Context          *mock_context.MockContext `ensure:"ignoreunused"`
 		EnsureFileLoader *mock_ensurefile.MockLoaderIface
-		MockGen          *mock_mockgen.MockGeneratorIface
+		MockGen          *mock_mockgen.MockMockGenerator
 		Cleanup          *mock_exitcleanup.MockExitCleaner
 	}
 

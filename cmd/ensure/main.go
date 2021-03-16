@@ -30,7 +30,7 @@ func main() {
 		Getwd:            os.Getwd,
 		EnsureFileLoader: &ensurefile.Loader{FS: fs.DirFS("")},
 		Cleanup:          exitCleanup,
-		MockGenerator: &mockgen.Generator{
+		MockGenerator: &mockgen.MockGen{
 			CmdRun:  &runcmd.Runner{},
 			FSWrite: &fswrite.FSWrite{},
 			Logger:  logger,

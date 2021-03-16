@@ -16,7 +16,7 @@ mocks:
       interfaces: [LoaderIface]
 
     - path: github.com/JosiahWitt/ensure-cli/internal/mockgen
-      interfaces: [GeneratorIface]
+      interfaces: [MockGenerator]
 
     - path: github.com/JosiahWitt/ensure-cli/internal/exitcleanup
       interfaces: [ExitCleaner]

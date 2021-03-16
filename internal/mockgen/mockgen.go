@@ -49,21 +49,22 @@ var (
 	ErrUnableToCreateFile = erk.New(ErkFSWriteError{}, "Could not create file '{{.path}}': {{.err}}")
 )
 
-type GeneratorIface interface {
+type MockGenerator interface {
 	GenerateMocks(ctx context.Context, config *ensurefile.Config) error
+	TidyMocks(config *ensurefile.Config) error
 }
 
-type Generator struct {
+type MockGen struct {
 	CmdRun  runcmd.RunnerIface
 	FSWrite fswrite.FSWriteIface
 	Logger  *log.Logger
 	Cleanup exitcleanup.ExitCleaner
 }
 
-var _ GeneratorIface = &Generator{}
+var _ MockGenerator = &MockGen{}
 
 // GenerateMocks for the provided configuration.
-func (g *Generator) GenerateMocks(ctx context.Context, config *ensurefile.Config) error {
+func (g *MockGen) GenerateMocks(ctx context.Context, config *ensurefile.Config) error {
 	if err := validateConfig(config); err != nil {
 		return err
 	}
@@ -115,7 +116,7 @@ type generateMockAsyncParams struct {
 	errorsMu sync.Mutex
 }
 
-func (g *Generator) generateMockAsync(ctx context.Context, mockDestination *mockDestination, asyncParams *generateMockAsyncParams) {
+func (g *MockGen) generateMockAsync(ctx context.Context, mockDestination *mockDestination, asyncParams *generateMockAsyncParams) {
 	defer asyncParams.wg.Done()
 
 	if err := g.generateMock(ctx, mockDestination); err != nil {
@@ -126,7 +127,7 @@ func (g *Generator) generateMockAsync(ctx context.Context, mockDestination *mock
 	g.Logger.Printf(" - Generated: %s\n", mockDestination.Package.String())
 }
 
-func (g *Generator) generateMock(ctx context.Context, mockDestination *mockDestination) error {
+func (g *MockGen) generateMock(ctx context.Context, mockDestination *mockDestination) error {
 	pkg := mockDestination.Package
 
 	if pkg.Path == "" {
