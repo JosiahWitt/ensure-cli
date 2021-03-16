@@ -3,6 +3,8 @@ package cmd_test
 import (
 	"context"
 	"errors"
+	"io/ioutil"
+	"log"
 	"testing"
 
 	"github.com/JosiahWitt/ensure"
@@ -127,6 +129,7 @@ func TestGenerateMocks(t *testing.T) {
 
 	ensure.RunTableByIndex(table, func(ensure ensurepkg.Ensure, i int) {
 		entry := table[i]
+		entry.Subject.Logger = log.New(ioutil.Discard, "", 0)
 		entry.Subject.Getwd = entry.Getwd
 
 		err := entry.Subject.Run(append([]string{"ensure", "generate", "mocks"}, entry.Flags...))
