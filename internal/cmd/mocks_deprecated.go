@@ -6,8 +6,9 @@ import (
 
 func (a *App) generateCmd() *cli.Command {
 	return &cli.Command{
-		Name:  "generate",
-		Usage: "prepare to run tests",
+		Name:   "generate",
+		Usage:  "DEPRECATED: Please use `ensure mocks generate`. This command (`ensure generate mocks`) will be removed in the next minor release.",
+		Hidden: true,
 
 		Subcommands: []*cli.Command{
 			a.generateMocksCmd(),
@@ -17,8 +18,9 @@ func (a *App) generateCmd() *cli.Command {
 
 func (a *App) generateMocksCmd() *cli.Command {
 	return &cli.Command{
-		Name:  "mocks",
-		Usage: "generates GoMocks (https://github.com/golang/mock) for the packages and interfaces listed in .ensure.yml",
+		Name:   "mocks",
+		Usage:  "DEPRECATED: Please use `ensure mocks generate`. This command (`ensure generate mocks`) will be removed in the next minor release.",
+		Hidden: true,
 
 		Flags: []cli.Flag{
 			&cli.BoolFlag{
@@ -28,6 +30,11 @@ func (a *App) generateMocksCmd() *cli.Command {
 		},
 
 		Action: func(c *cli.Context) error {
+			a.Logger.Print(
+				"WARNING: `ensure generate mocks` is deprecated. Please use `ensure mocks generate`." +
+					"This command (`ensure generate mocks`) will be removed in the next minor release.\n\n",
+			)
+
 			pwd, err := a.Getwd()
 			if err != nil {
 				return err

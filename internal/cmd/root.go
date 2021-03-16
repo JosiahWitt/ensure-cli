@@ -16,7 +16,7 @@ type App struct {
 	Logger           *log.Logger
 	Getwd            func() (string, error)
 	EnsureFileLoader ensurefile.LoaderIface
-	MockGenerator    mockgen.GeneratorIface
+	MockGenerator    mockgen.MockGenerator
 	Cleanup          exitcleanup.ExitCleaner
 }
 
@@ -31,6 +31,7 @@ func (a *App) Run(args []string) error {
 
 		Commands: []*cli.Command{
 			a.generateCmd(),
+			a.mocksCmd(),
 		},
 	}
 

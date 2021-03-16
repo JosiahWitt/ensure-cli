@@ -2,6 +2,8 @@ package fswrite_test
 
 import (
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -76,4 +78,61 @@ func TestGlobRemoveAll(t *testing.T) {
 		err := fsWrite.GlobRemoveAll(`\`)
 		ensure(err).IsError(filepath.ErrBadPattern)
 	})
+}
+
+func TestListRecursive(t *testing.T) {
+	t.Run("lists all paths recursively", func(t *testing.T) {
+		ensure := ensure.New(t)
+		dirName := t.TempDir()
+
+		cmd := exec.Command("sh", "-c", "mkdir -p abc/xyz qwerty; touch hi.txt abc/hello.txt abc/hello2.txt abc/xyz/here.txt qwerty/ytrewq.txt")
+		cmd.Dir = dirName
+		cmd.Stderr = os.Stderr
+		err := cmd.Run()
+		ensure(err).IsNotError()
+
+		fsWrite := fswrite.FSWrite{}
+		paths, err := fsWrite.ListRecursive(dirName)
+		ensure(err).IsNotError()
+
+		ensure(paths).Equals([]string{
+			dirName,
+			dirName + "/abc",
+			dirName + "/abc/hello.txt",
+			dirName + "/abc/hello2.txt",
+			dirName + "/abc/xyz",
+			dirName + "/abc/xyz/here.txt",
+			dirName + "/hi.txt",
+			dirName + "/qwerty",
+			dirName + "/qwerty/ytrewq.txt",
+		})
+	})
+
+	t.Run("when error listing files", func(t *testing.T) {
+		ensure := ensure.New(t)
+		dirName := t.TempDir()
+
+		fsWrite := fswrite.FSWrite{}
+		paths, err := fsWrite.ListRecursive(dirName + "/does_not_exit")
+		ensure(err).IsError(os.ErrNotExist)
+		ensure(paths).IsEmpty()
+	})
+}
+
+func TestRemoveAll(t *testing.T) {
+	ensure := ensure.New(t)
+	dirName := t.TempDir()
+
+	cmd := exec.Command("sh", "-c", "mkdir -p abc/xyz; touch abc/hello.txt abc/hello2.txt abc/xyz/here.txt")
+	cmd.Dir = dirName
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	ensure(err).IsNotError()
+
+	fsWrite := fswrite.FSWrite{}
+	err = fsWrite.RemoveAll(dirName + "/abc")
+	ensure(err).IsNotError()
+
+	_, err = os.Stat(dirName + "/abc")
+	ensure(err).IsError(os.ErrNotExist)
 }

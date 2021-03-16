@@ -11,6 +11,8 @@ type FSWriteIface interface {
 	WriteFile(filename string, data string, perm os.FileMode) error
 	MkdirAll(path string, perm os.FileMode) error
 	GlobRemoveAll(pattern string) error
+	ListRecursive(dir string) ([]string, error)
+	RemoveAll(paths string) error
 }
 
 type FSWrite struct{}
@@ -41,4 +43,23 @@ func (*FSWrite) GlobRemoveAll(pattern string) error {
 	}
 
 	return nil
+}
+
+// ListRecursive returns every path that can be recursively found in the provided directory.
+func (*FSWrite) ListRecursive(dir string) ([]string, error) {
+	paths := []string{}
+	err := filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+		paths = append(paths, path)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return paths, nil
+}
+
+// RemoveAll deletes the path and any sub paths.
+func (*FSWrite) RemoveAll(path string) error {
+	return os.RemoveAll(path)
 }

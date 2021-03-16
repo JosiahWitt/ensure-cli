@@ -48,6 +48,21 @@ func (mr *MockFSWriteIfaceMockRecorder) GlobRemoveAll(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GlobRemoveAll", reflect.TypeOf((*MockFSWriteIface)(nil).GlobRemoveAll), arg0)
 }
 
+// ListRecursive mocks base method.
+func (m *MockFSWriteIface) ListRecursive(arg0 string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListRecursive", arg0)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListRecursive indicates an expected call of ListRecursive.
+func (mr *MockFSWriteIfaceMockRecorder) ListRecursive(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListRecursive", reflect.TypeOf((*MockFSWriteIface)(nil).ListRecursive), arg0)
+}
+
 // MkdirAll mocks base method.
 func (m *MockFSWriteIface) MkdirAll(arg0 string, arg1 os.FileMode) error {
 	m.ctrl.T.Helper()
@@ -60,6 +75,20 @@ func (m *MockFSWriteIface) MkdirAll(arg0 string, arg1 os.FileMode) error {
 func (mr *MockFSWriteIfaceMockRecorder) MkdirAll(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MkdirAll", reflect.TypeOf((*MockFSWriteIface)(nil).MkdirAll), arg0, arg1)
+}
+
+// RemoveAll mocks base method.
+func (m *MockFSWriteIface) RemoveAll(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveAll", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveAll indicates an expected call of RemoveAll.
+func (mr *MockFSWriteIfaceMockRecorder) RemoveAll(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAll", reflect.TypeOf((*MockFSWriteIface)(nil).RemoveAll), arg0)
 }
 
 // WriteFile mocks base method.

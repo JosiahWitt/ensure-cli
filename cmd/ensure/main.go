@@ -17,7 +17,7 @@ import (
 //nolint:gochecknoglobals // Allows injecting the version
 // Version of the CLI.
 // Should be tied to the release version.
-var Version = "0.1.3"
+var Version = "0.1.4"
 
 func main() {
 	logger := log.New(os.Stdout, "", 0)
@@ -30,7 +30,7 @@ func main() {
 		Getwd:            os.Getwd,
 		EnsureFileLoader: &ensurefile.Loader{FS: fs.DirFS("")},
 		Cleanup:          exitCleanup,
-		MockGenerator: &mockgen.Generator{
+		MockGenerator: &mockgen.MockGen{
 			CmdRun:  &runcmd.Runner{},
 			FSWrite: &fswrite.FSWrite{},
 			Logger:  logger,

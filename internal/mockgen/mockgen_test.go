@@ -42,7 +42,7 @@ func TestGenerateMocks(t *testing.T) {
 
 		Mocks         *Mocks
 		AssembleMocks func(*Mocks) []*gomock.Call
-		Subject       *mockgen.Generator
+		Subject       *mockgen.MockGen
 	}{
 		{
 			Name: "with simple valid config",
@@ -606,7 +606,7 @@ func (*MockIface1) NEW(ctrl *gomock.Controller) *MockIface1 {
 		mockRunCmd := mock_runcmd.NewMockRunnerIface(ensure.GoMockController())
 		mockExitCleanup := mock_exitcleanup.NewMockExitCleaner(ensure.GoMockController())
 
-		gen := mockgen.Generator{
+		gen := mockgen.MockGen{
 			Logger:  log.New(ioutil.Discard, "", 0),
 			CmdRun:  mockRunCmd,
 			FSWrite: mockFSWrite,

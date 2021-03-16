@@ -63,6 +63,7 @@ func TestLoadConfig(t *testing.T) {
 				Mocks: &ensurefile.MockConfig{
 					PrimaryDestination:  "internal/mocks",
 					InternalDestination: "mocks",
+					TidyAfterGenerate:   true,
 					Packages: []*ensurefile.Package{
 						{
 							Path: "github.com/my/app/some/pkg",
@@ -90,6 +91,7 @@ func TestLoadConfig(t *testing.T) {
 				Mocks: &ensurefile.MockConfig{
 					PrimaryDestination:  "internal/mocks",
 					InternalDestination: "mocks",
+					TidyAfterGenerate:   true,
 					Packages: []*ensurefile.Package{
 						{
 							Path: "github.com/my/app/some/pkg",
