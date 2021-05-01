@@ -81,11 +81,16 @@ func computeMockDestination(config *ensurefile.Config, pkg *ensurefile.Package) 
 }
 
 func (dest *mockDestination) fullPath() string {
-	originalPackageName := filepath.Base(dest.rawPackagePath)
-	mockPackageName := "mock_" + originalPackageName
+	mockPackageName := dest.mockPackageName()
 	destPkgFile := filepath.Join(filepath.Dir(dest.rawPackagePath), mockPackageName, mockPackageName+".go")
 
 	return filepath.Join(dest.PWD, dest.MockDir, destPkgFile)
+}
+
+func (dest *mockDestination) mockPackageName() string {
+	originalPackageName := filepath.Base(dest.rawPackagePath)
+	mockPackageName := "mock_" + originalPackageName
+	return mockPackageName
 }
 
 func (dests mockDestinations) uniquePWDs() []string {
@@ -110,6 +115,15 @@ func (dests mockDestinations) byFullMockDir() map[string]mockDestinations {
 	}
 
 	return byMockDir
+}
+
+func (dests mockDestinations) byPackagePath() map[string]*mockDestination {
+	byPackagePath := map[string]*mockDestination{}
+	for _, dest := range dests {
+		byPackagePath[dest.Package.Path] = dest
+	}
+
+	return byPackagePath
 }
 
 func (dests mockDestinations) hasFullPathPrefix(prefix string) bool {

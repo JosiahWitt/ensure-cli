@@ -16,6 +16,12 @@ var (
 
 // TidyMocks removes any files other than those that are expected to exist in the mock directories.
 func (g *MockGen) TidyMocks(config *ensurefile.Config) error {
+	mockGenV2 := &MockGenV2{FSWrite: g.FSWrite, Logger: g.Logger}
+	return mockGenV2.TidyMocks(config)
+}
+
+// TidyMocks removes any files other than those that are expected to exist in the mock directories.
+func (g *MockGenV2) TidyMocks(config *ensurefile.Config) error {
 	if err := validateConfig(config); err != nil {
 		return err
 	}

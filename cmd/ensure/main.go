@@ -10,8 +10,8 @@ import (
 	"github.com/JosiahWitt/ensure-cli/internal/ensurefile"
 	"github.com/JosiahWitt/ensure-cli/internal/exitcleanup"
 	"github.com/JosiahWitt/ensure-cli/internal/fswrite"
+	"github.com/JosiahWitt/ensure-cli/internal/ifacereader"
 	"github.com/JosiahWitt/ensure-cli/internal/mockgen"
-	"github.com/JosiahWitt/ensure-cli/internal/runcmd"
 )
 
 //nolint:gochecknoglobals // Allows injecting the version
@@ -30,12 +30,21 @@ func main() {
 		Getwd:            os.Getwd,
 		EnsureFileLoader: &ensurefile.Loader{FS: fs.DirFS("")},
 		Cleanup:          exitCleanup,
-		MockGenerator: &mockgen.MockGen{
-			CmdRun:  &runcmd.Runner{},
-			FSWrite: &fswrite.FSWrite{},
-			Logger:  logger,
-			Cleanup: exitCleanup,
+
+		MockGenerator: &mockgen.MockGenV2{
+			// CmdRun:  &runcmd.Runner{},
+			FSWrite:     &fswrite.FSWrite{},
+			Logger:      logger,
+			IfaceReader: &ifacereader.InterfaceReader{},
+			// Cleanup: exitCleanup,
 		},
+
+		// MockGenerator: &mockgen.MockGen{
+		// 	CmdRun:  &runcmd.Runner{},
+		// 	FSWrite: &fswrite.FSWrite{},
+		// 	Logger:  logger,
+		// 	Cleanup: exitCleanup,
+		// },
 	}
 
 	err := app.Run(os.Args)
