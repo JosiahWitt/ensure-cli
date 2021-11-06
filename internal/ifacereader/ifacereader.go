@@ -239,6 +239,19 @@ func extractPackagePaths(rawType types.Type) ([]string, error) {
 	case *types.Chan:
 		return extractPackagePaths(t.Elem())
 
+	case *types.Map:
+		keyPaths, err := extractPackagePaths(t.Key())
+		if err != nil {
+			return nil, err
+		}
+
+		elemPaths, err := extractPackagePaths(t.Elem())
+		if err != nil {
+			return nil, err
+		}
+
+		return append(keyPaths, elemPaths...), nil
+
 	case *types.Signature:
 		paths := make([]string, 0, t.Params().Len()+t.Results().Len())
 		for i := 0; i < t.Params().Len(); i++ {
