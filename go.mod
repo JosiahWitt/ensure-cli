@@ -1,3 +1,4 @@
+// Deprecated: install github.com/JosiahWitt/ensure/cmd/ensure instead.
 module github.com/JosiahWitt/ensure-cli
 
 go 1.15
